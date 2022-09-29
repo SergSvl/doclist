@@ -69,7 +69,14 @@
           "asyncArrow": "always"
         }
       ],
-      "no-unused-vars": "off"
+      "no-unused-vars": "off",
+      "no-trailing-spaces": [
+        "error",
+        {
+          "skipBlankLines": true
+        }
+      ],
+      "vue/no-unused-components": "warn"
     }
   },
   "browserslist": [

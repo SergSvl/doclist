@@ -1,20 +1,50 @@
 <template>
-  <div class="w-full border border-blue-300 pl-4 mt-6">
-    <div>{{ title }}</div>
+  <div class="w-full -border border-blue-300 pl-4 mt-6">
+    <template v-for="(element, index) in freeElements">
+      <Element :key="index" :element="element" />
+    </template>
   </div>
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex';
+import Element from '@/components/Element.vue';
+import { getLSData } from '@/utils/helpers/local-storage-helpers';
+import { LOCAL_STORAGE_KEYS } from '@/utils/local-storage-keys';
+
 export default {
   name: 'AppParking',
-  // props: {
-  //   title: String
-  // },
+  components: {
+    Element,
+  },
 
   data() {
     return {
-      title: 'Parking',
+      title: '',
     };
+  },
+
+  computed: {
+    ...mapGetters('documents', ['freeElements']),
+  },
+
+  methods: {
+    ...mapActions('documents', ['setFreeElements']),
+
+    initialization() {
+      const freeElements = getLSData(LOCAL_STORAGE_KEYS.freeElements);
+
+      if (typeof freeElements === 'object' && freeElements !== null) {
+        console.log('freeElements in LS: ', freeElements);
+        this.setFreeElements(freeElements);
+      }
+      console.log('state freeElements: ', this.freeElements);
+    },
+
+  },
+
+  created() {
+    this.initialization();
   },
 };
 </script>

@@ -1,9 +1,13 @@
 <template>
-  <div id="app" class="w-[1280px] m-10 flex flex-wrap justify-center border border-red-300">
-    <Header />
-    <Search />
-    <Categories />
-    <Parking />
+  <div id="app">
+    <div class="min-w-[1280px] m-10 flex flex-wrap justify-center -border border-red-300">
+      <Header />
+    </div>
+    <div class="w-[1280px] m-10 flex flex-wrap justify-center -border border-red-300">
+      <Search />
+      <Categories />
+      <Parking />
+    </div>
   </div>
 </template>
 

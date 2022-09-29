@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full border border-gray-300 pl-4">
-    <template v-for="(category, index) in allCategories">
-      <Category :key="index" :category='category'/>
+  <div id="categoriesParent" class="w-full -border border-gray-300 pl-4">
+    <template v-for="(category, index) in isFiltration ? filteredCategories : categories">
+      <Category :key="index" :category="category" :categories="categories"/>
     </template>
   </div>
 </template>
@@ -14,54 +14,45 @@ import { LOCAL_STORAGE_KEYS } from '@/utils/local-storage-keys';
 
 export default {
   name: 'AppCategories',
-  // props: {
-  //   title: String
-  // },
   components: {
     Category,
   },
 
   data() {
     return {
-      title: 'Categories',
-      allCategories: null,
+      title: '',
     };
   },
 
   computed: {
-    ...mapGetters({
-      categories: 'documents/categories',
-    }),
+    ...mapGetters('documents', ['categories', 'filteredCategories', 'isFiltration']),
   },
 
-  // computed: mapState({
-  //   categories: state => state.documents.categories
-  // }),
-
   methods: {
-    initialization() {
-      this.allCategories = this.categories;
+    ...mapActions('documents', ['setCategories']),
 
+    initialization() {
       const categories = getLSData(LOCAL_STORAGE_KEYS.categories);
-      // console.log('initialization LS categories: ', categories);
 
       if (typeof categories === 'object' && categories !== null) {
-        this.allCategories = categories;
+        // console.log('categories in LS: ', categories);
+        this.setCategories(categories);
+      } else {
+        this.setCategories(this.categories);
       }
-      console.log('store categories: ', this.allCategories);
+      console.log('state categories: ', this.categories);
     },
+
   },
 
   created() {
     this.initialization();
   },
 
-  mounted() {
-    // console.log('store categories: ', this.categories);
-  },
-
   updated() {
-    // console.log('store categories: ', this.categories);
+    // console.log('updated: ');
+    // console.log('state categories: ', this.categories);
+    // console.log('state filteredCategories: ', this.filteredCategories);
   },
 };
 </script>

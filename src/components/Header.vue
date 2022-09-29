@@ -4,21 +4,19 @@
   >
     <div>{{ title }}</div>
     <div class="flex">
-      <Button type="bookmark" />
-      <Button text="Новый тип" />
-      <Button text="Новый документ" />
+      <Button type="bookmark" :clickHandler="onBookmark" />
+      <Button text="Новый тип" :clickHandler="addNewType" />
+      <Button text="Новый документ" :clickHandler="addNewDocument" />
     </div>
   </div>
 </template>
 
 <script>
 import Button from '@/components/Button.vue';
+import { mapActions } from 'vuex';
 
 export default {
   name: 'AppHeader',
-  // props: {
-  //   title: String
-  // },
   components: {
     Button,
   },
@@ -27,6 +25,20 @@ export default {
     return {
       title: 'Документы',
     };
+  },
+
+  methods: {
+    ...mapActions('documents', ['addCategory', 'addElement']),
+
+    onBookmark() {
+      //
+    },
+    addNewType() {
+      this.addCategory({ title: 'Новый тип документов' });
+    },
+    addNewDocument() {
+      this.addElement({ title: 'Новый документ' });
+    },
   },
 };
 </script>

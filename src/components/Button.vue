@@ -3,8 +3,9 @@
     <div class="ml-2.5">
       <button
         class="border relative rounded-full shadow-sm px-2.5 align-middle h-8 hover:bg-slate-50"
+        @click="clickHandler"
       >
-        <img :src="bookmark" />
+        <img :src="bookmarkImage" />
       </button>
     </div>
   </div>
@@ -12,6 +13,7 @@
     <div class="">
       <button
         class="border relative rounded-full shadow-sm align-middle mx-auto text-center h-5 w-5 hover:bg-slate-50"
+        @click="clickHandler"
       >
         <div v-if="state === 'closed'" class="border-b-2 border-r-2 border-blue-500 rotate-45 w-2 h-2 mb-1 mx-auto"></div>
         <div v-else class="border-t-2 border-l-2 border-blue-500 rotate-45 w-2 h-2 mt-1 mx-auto"></div>
@@ -24,6 +26,7 @@
     </span>
     <button
       class="border relative rounded-full shadow-sm pl-8 pr-3 align-middle h-8 hover:bg-slate-50 group-hover:bg-slate-50"
+      @click="clickHandler"
     >
       <span
         class="-border text-xs font-medium inline-block leading-7 align-bottom"
@@ -34,7 +37,7 @@
 </template>
 
 <script>
-import bookmark from '@/assets/svg/bookmark.svg';
+import bookmarkImage from '@/assets/svg/bookmark.svg';
 
 export default {
   name: 'AppButton',
@@ -51,11 +54,15 @@ export default {
       type: String,
       default: 'closed',
     },
+    clickHandler: {
+      type: Function,
+      default: () => null,
+    }
   },
 
   data() {
     return {
-      bookmark,
+      bookmarkImage,
     };
   },
 };

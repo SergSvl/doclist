@@ -1,13 +1,12 @@
 <template>
   <div
+    :key="category.id"
+    :id="category.id === 'target#position' ? 'target#position' : null"
     :data-id="category.id"
     :data-order="category.order"
     class="flex flex-wrap items-center justify-between -border border-gray-300 transition-all duration-200"
   >
-    <div v-if="category.id === 'category#phantom'" class="flex flex-wrap w-full"
-      :data-id="category.id"
-      :data-order="category.order"
-    >
+    <div v-if="category.id === 'category#phantom'" class="flex flex-wrap w-full">
       <div class="flex w-full items-center justify-between border border-gray-300 h-12 transition-all duration-200 opacity-30">
         <div class="flex items-center">
           <Button
@@ -34,6 +33,8 @@
       </div>
     </div>
 
+    <div v-else-if="category.id === 'target#position'" class="flex flex-wrap w-full h-1.5 bg-blue-500"></div>
+
     <div v-else class="flex flex-wrap w-full"
       :data-id="category.id"
       :data-order="category.order"
@@ -41,7 +42,7 @@
       <div
         :data-id="category.id"
         :data-order="category.order"
-        :class="`category-${category.id} flex w-full items-center justify-between border border-gray-300 h-12 bg-white transition-all duration-200`"
+        :class="`${category.id} flex w-full items-center justify-between border border-gray-300 h-12 bg-white transition-all duration-200`"
       >
         <div class="flex items-center -border-2">
           <Button
@@ -152,7 +153,7 @@ export default {
         element = elements[0].firstElementChild;
       }
 
-      // console.log('elements:', elements);
+      console.log('elements:', elements);
       // console.log('element:', element);
       // console.log('---');
 
@@ -165,6 +166,9 @@ export default {
       // console.log('margins:', margins);
       // console.log('elements.length:', elements.length);
       // console.log('---');
+
+      const targetPositionElement = document.getElementById('target#position');
+      console.log('targetPositionElement:', targetPositionElement);
 
       for (let i = 0; i < elements.length; i++) {
         const height =
@@ -186,19 +190,19 @@ export default {
         // console.log(' --resultTop:', resultTop);
         // console.log(' --resultBottom:', resultBottom);
         console.log(' --elements[' + i + ']:', elements[i]);
+        console.log(' --elements[' + i + '].dataset:', elements[i].dataset);
         console.log(' --elements[' + i + '].id:', elements[i].id);
-        console.log(' --elements[' + i + ']:', elements[i]);
-        console.log(
-          'mouseDownElement.dataset.id:',
-          this.mouseDownElement.dataset.id
-        );
+        console.log(' --elements[' + i + '].dataset.order:', elements[i].dataset.order);
+        console.log(' --elements[' + i + '].dataset.id:', elements[i].dataset.id);
+        // console.log('mouseDownElement.dataset.id:', this.mouseDownElement.dataset.id);
         console.log('---');
-        // console.log('mouseDownElement:', this.mouseDownElement);
-        // console.log('---');
+        console.log('elements[i].dataset.id !== this.mouseDownElement.dataset.id:', elements[i].dataset.id !== this.mouseDownElement.dataset.id);
+        console.log('---');
 
-        if (elements[i].id !== this.mouseDownElement.dataset.id) {
+        if (elements[i].dataset.id !== this.mouseDownElement.dataset.id) {
           elementBorders.push({
-            id: elements[i].id ? elements[i].id : this.phantomId,
+            // id: elements[i].id ? elements[i].id : this.phantomId,
+            id: elements[i].dataset.id,
             order: parseFloat(elements[i].dataset.order),
             top: resultTop,
             // left: elements[i].offsetLeft,
@@ -207,19 +211,21 @@ export default {
           });
         }
 
-        if (!elements[i].id) {
-          if (elements[i].dataset.order !== undefined) {
-            this.phantomData = {
-              id: this.phantomId,
-              top: resultTop,
-              left: elements[i].offsetLeft,
-              order: parseFloat(elements[i].dataset.order),
-              type: 'category'
-            };
-          }
+        // if (!elements[i].dataset.id) {
+        // if (elements[i].dataset.order !== undefined) {
+        if (elements[i].id === 'target#position') {
+          this.phantomData = {
+            id: this.phantomId,
+            top: resultTop,
+            left: elements[i].offsetLeft,
+            order: parseFloat(elements[i].dataset.order),
+            type: 'category'
+          };
         }
+        // }
       }
       console.log('elementBorders:', elementBorders);
+      console.log('this.phantomData:', this.phantomData);
       this.domElements = elementBorders;
     },
 
@@ -236,7 +242,7 @@ export default {
     mouseDown(e) {
       // console.log('mouseDown: ', e);
       const elementId = e.target.dataset.id;
-      const element = document.querySelector(`.category-${elementId}`);
+      const element = document.querySelector(`.${elementId}`);
       this.mouseDownElement = element;
       this.globalCoords = {
         x: e.screenX,
@@ -279,7 +285,7 @@ export default {
     setMouseUpElementStyles() {
       if (this.foundElement !== null) {
         this.mouseDownElement.style.left = this.foundElement.left + 'px';
-        this.mouseDownElement.style.top = this.foundElement.top + this.marginTopElement + 'px'; // margin-top compensation
+        this.mouseDownElement.style.top = this.foundElement.top; // + this.marginTopElement + 'px'; // margin-top compensation
       } else {
         this.mouseDownElement.style.left = this.windowCoords.x + 'px';
         this.mouseDownElement.style.top = this.windowCoords.y + 'px';

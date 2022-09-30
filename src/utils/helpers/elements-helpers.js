@@ -148,39 +148,40 @@ export const addPhantom = (
   categoryId = '',
   { sourceOrder = null, destinationOrder, title, dividedMyself = false, dividedOnTheLeft = false }
 ) => {
-  let phantom = {};
   let element = {};
+  const order = parseFloat(destinationOrder) + 0.1;
+  const phantom = {
+    order,
+    title,
+  };
+  const targetPosition = {
+    id: 'target#position',
+    order: parseFloat(destinationOrder) + 0.5,
+  };
+
   // up = sourceOrder > destinationOrder, down - sourceOrder < destinationOrder
-  const order =
-    sourceOrder < destinationOrder
-      // ? dividedOnTheLeft
-      //   ? parseFloat(destinationOrder) + 1.5
-      ? parseFloat(destinationOrder) + 0.5
-      // : dividedMyself
-      //   ? parseFloat(destinationOrder) - 1.5
-      : parseFloat(destinationOrder) - 0.5;
+  // const order =
+  //   sourceOrder < destinationOrder
+  //     // ? dividedOnTheLeft
+  //     //   ? parseFloat(destinationOrder) + 1.5
+  //     ? parseFloat(destinationOrder) + 0.5
+  //     // : dividedMyself
+  //     //   ? parseFloat(destinationOrder) - 1.5
+  //     : parseFloat(destinationOrder) - 0.5;
 
   switch (type) {
     case 'category':
       element = elements.filter(element => element.id === categoryId)[0];
-      phantom = {
-        id: 'category#phantom',
-        order,
-        title,
-        elems: element.elems,
-        isOpened: element.isOpened,
-      };
+      phantom.id = 'category#phantom';
+      phantom.elems = element.elems;
+      phantom.isOpened = element.isOpened;
       break;
     case 'element':
-      phantom = {
-        id: 'element#phantom',
-        order,
-        title,
-      };
+      phantom.id = 'element#phantom';
       break;
     default:
   }
-  return [...elements, phantom].sort(sortElements);
+  return [...elements, phantom, targetPosition].sort(sortElements);
 };
 
 export const moveElement = ({ elements, elementId, newElementOrder }) => {

@@ -10,7 +10,7 @@ export default {
     isFiltration: false,
     categories: [
       {
-        id: '1',
+        id: 'category-1',
         order: 1,
         title: 'Обязательные для всех',
         elems: [
@@ -28,15 +28,15 @@ export default {
         isOpened: true,
       },
       {
-        id: '2',
+        id: 'category-2',
         order: 2,
         title: 'Обязательные для трудоустройства',
         elems: [],
         isOpened: false,
       },
       {
-        id: '3',
-        order: 4,
+        id: 'category-3',
+        order: 3,
         title: 'Специальные',
         elems: [
           {

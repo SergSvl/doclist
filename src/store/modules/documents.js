@@ -26,6 +26,7 @@ export default {
           },
         ],
         isOpened: true,
+        targetPosition: false,
       },
       {
         id: 'category-2',
@@ -33,6 +34,7 @@ export default {
         title: 'Обязательные для трудоустройства',
         elems: [],
         isOpened: false,
+        targetPosition: false,
       },
       {
         id: 'category-3',
@@ -51,6 +53,7 @@ export default {
           },
         ],
         isOpened: false,
+        targetPosition: false,
       },
     ],
     freeElements: [],
@@ -76,7 +79,7 @@ export default {
     addCategory(state, { title }) {
       const order = state.categories.length + 1;
       state.categories.push({
-        id: `category#${Date.now()}`,
+        id: `category-${Date.now()}`,
         order,
         title: `${title} №${order}`,
         elems: [],
@@ -93,7 +96,7 @@ export default {
     addElement(state, { title }) {
       const order = state.freeElements.length + 1;
       state.freeElements.push({
-        id: `element#${Date.now()}`,
+        id: `element-${Date.now()}`,
         order,
         title: `${title} №${order}`,
       });
@@ -127,6 +130,7 @@ export default {
         return category;
       });
       state.categories = categories;
+      setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
       const filteredCategories = state.filteredCategories.map(category => {
         if (category.id === id) {
           category.isOpened = !category.isOpened;
@@ -135,9 +139,9 @@ export default {
       });
       state.filteredCategories = filteredCategories;
     },
-    addElementPhantom(state, { categoryId = null, order, title, type }) {
+    addElementPhantom(state, { categoryId = null, sourceOrder, destinationOrder, title, type }) {
       if (!state.isPhantomCreated) {
-        console.log('addElementPhantom: ', { categoryId, order, title, type });
+        // console.log('addElementPhantom: ', { categoryId, order, title, type });
 
         switch (type) {
           case 'category':
@@ -146,8 +150,8 @@ export default {
               state.categories,
               categoryId,
               {
-                sourceOrder: null,
-                destinationOrder: order,
+                sourceOrder,
+                destinationOrder,
                 title
               }
             );
@@ -158,9 +162,10 @@ export default {
                 category.elems = addPhantom(
                   type,
                   category.elems,
+                  null,
                   {
-                    sourceOrder: null,
-                    destinationOrder: order,
+                    sourceOrder,
+                    destinationOrder,
                     title
                   }
                 );
@@ -174,19 +179,19 @@ export default {
       }
     },
     removePhantomElement(state, { categoryId, fromElementId, toElementOrder, type }) {
-      console.log('removePhantomElement: ', { categoryId, fromElementId, toElementOrder, type });
+      // console.log('removePhantomElement: ', { categoryId, fromElementId, toElementOrder, type });
       let swappedCategories;
-      let reorderedCategories;
+      let filteredCategories;
 
       switch (type) {
         case 'category':
+          filteredCategories = state.categories.filter(category => category.id !== 'category#phantom');
           swappedCategories = moveElement({
-            elements: state.categories.filter(category => category.id !== 'category#phantom'),
+            elements: filteredCategories,
             elementId: fromElementId,
             newElementOrder: toElementOrder
           });
-          reorderedCategories = reorder(swappedCategories);
-          state.categories = reorderedCategories;
+          state.categories = reorder(swappedCategories);
           break;
         case 'element':
           state.categories = state.categories.map((category) => {
@@ -206,6 +211,22 @@ export default {
       }
       setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
       state.isPhantomCreated = false;
+    },
+    swapCategories(state, { sourceOrder, destinationOrder, categoryId }) {
+      console.log('swapCategories: ', { sourceOrder, destinationOrder, categoryId });
+
+      state.categories = state.categories.filter((category) => category.id !== 'target#position');
+      state.categories = addPhantom(
+        'category',
+        state.categories,
+        categoryId,
+        {
+          sourceOrder,
+          destinationOrder,
+          title: '',
+          swap: true
+        }
+      );
     },
   },
 
@@ -242,6 +263,9 @@ export default {
     },
     removePhantomElement({ commit }, payload) {
       commit('removePhantomElement', payload);
+    },
+    swapCategories({ commit }, payload) {
+      commit('swapCategories', payload);
     },
   },
 };

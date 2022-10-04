@@ -1,8 +1,12 @@
 <template>
   <div id="categoriesParent" class="w-full -border border-gray-300 pl-4">
-    <template v-for="(category, index) in isFiltration ? filteredCategories : categories">
-      <Category :key="index" :category="category" :categories="categories"/>
-    </template>
+    <div v-for="(category, index) in isFiltration ? filteredCategories : categories"
+      :key="index"
+      :data-id="category.id"
+      :data-order="category.order"
+    >
+      <Category :category="category" :categories="categories"/>
+    </div>
   </div>
 </template>
 

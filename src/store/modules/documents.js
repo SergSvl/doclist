@@ -10,19 +10,31 @@ export default {
     isFiltration: false,
     categories: [
       {
+        id: 'category-0',
+        order: 0,
+        targetPosition: false,
+      },
+      {
         id: 'category-1',
         order: 1,
         title: 'Обязательные для всех',
         elems: [
           {
-            id: '1',
-            order: 1,
-            title: 'Паспорт',
+            id: 'element-0',
+            order: 0,
+            targetPosition: false,
           },
           {
-            id: '2',
+            id: 'element-1',
+            order: 1,
+            title: 'Паспорт',
+            targetPosition: false,
+          },
+          {
+            id: 'element-2',
             order: 2,
             title: 'Трудовая',
+            targetPosition: false,
           },
         ],
         isOpened: true,
@@ -42,14 +54,21 @@ export default {
         title: 'Специальные',
         elems: [
           {
-            id: '1',
-            order: 1,
-            title: 'Паспорт',
+            id: 'element-0',
+            order: 0,
+            targetPosition: false,
           },
           {
-            id: '2',
+            id: 'element-11',
+            order: 1,
+            title: 'Паспорт',
+            targetPosition: false,
+          },
+          {
+            id: 'element-22',
             order: 2,
             title: 'Страховое свидетельство',
+            targetPosition: false,
           },
         ],
         isOpened: false,
@@ -82,7 +101,13 @@ export default {
         id: `category-${Date.now()}`,
         order,
         title: `${title} №${order}`,
-        elems: [],
+        elems: [
+          {
+            id: 'element-0',
+            order: 0,
+            targetPosition: false,
+          },
+        ],
         isOpened: false,
       });
       setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
@@ -99,6 +124,7 @@ export default {
         id: `element-${Date.now()}`,
         order,
         title: `${title} №${order}`,
+        targetPosition: false,
       });
       setLSData(LOCAL_STORAGE_KEYS.freeElements, state.freeElements);
     },
@@ -141,7 +167,7 @@ export default {
     },
     addElementPhantom(state, { categoryId = null, sourceOrder, destinationOrder, title, type }) {
       if (!state.isPhantomCreated) {
-        // console.log('addElementPhantom: ', { categoryId, order, title, type });
+        // console.log('addElementPhantom: ', { categoryId, sourceOrder, destinationOrder, title, type });
 
         switch (type) {
           case 'category':
@@ -179,7 +205,7 @@ export default {
       }
     },
     removePhantomElement(state, { categoryId, fromElementId, toElementOrder, type }) {
-      // console.log('removePhantomElement: ', { categoryId, fromElementId, toElementOrder, type });
+      console.log('removePhantomElement: ', { categoryId, fromElementId, toElementOrder, type });
       let swappedCategories;
       let filteredCategories;
 
@@ -191,6 +217,7 @@ export default {
             elementId: fromElementId,
             newElementOrder: toElementOrder
           });
+          console.log('moveElement: ', swappedCategories);
           state.categories = reorder(swappedCategories);
           break;
         case 'element':
@@ -227,6 +254,26 @@ export default {
           swap: true
         }
       );
+    },
+    swapElements(state, { sourceOrder, destinationOrder, categoryId }) {
+      // console.log('swapElements: ', { sourceOrder, destinationOrder, categoryId });
+
+      state.categories = state.categories.map((category) => {
+        if (category.id === categoryId) {
+          category.elems = addPhantom(
+            'element',
+            category.elems,
+            null,
+            {
+              sourceOrder,
+              destinationOrder,
+              title: '',
+              swap: true
+            }
+          );
+        }
+        return category;
+      });
     },
   },
 
@@ -266,6 +313,9 @@ export default {
     },
     swapCategories({ commit }, payload) {
       commit('swapCategories', payload);
+    },
+    swapElements({ commit }, payload) {
+      commit('swapElements', payload);
     },
   },
 };

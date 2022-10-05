@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div v-else
+    <div v-else-if="category.id !== 'category-0'"
       class="flex flex-wrap w-full"
       :data-id="category.id"
       :data-order="category.order"
@@ -35,7 +35,8 @@
       <div
         :data-id="category.id"
         :data-order="category.order"
-        :class="`${category.id} flex w-full items-center justify-between border border-gray-300 h-12 bg-white transition-all duration-200`"
+        :draggable="false"
+        :class="`${category.id} flex w-full items-center justify-between border border-gray-300 h-12 bg-white transition-all duration-200 bg-sky-100`"
       >
         <div class="flex items-center -border-2">
           <Button
@@ -49,14 +50,15 @@
         <div class="flex items-center right-0 -border-2 h-full">
           <img class="mr-2 p-2 -border hover:cursor-pointer" :src="editImage" />
           <img
-            class="mr-2 p-2 -border hover:cursor-pointer"
+            class="mr-0 p-2 -border border-red-300 hover:cursor-pointer"
             :src="removeImage"
             @click="removeHandler"
           />
           <img
             :data-id="category.id"
-            class="mr-0 p-4 -border hover:cursor-pointer"
+            class="mr-0 p-4 -border border-red-300 hover:cursor-pointer"
             :src="moveImage"
+            :draggable="false"
             @mousedown="(e) => mouseDown(e)"
             @mousemove="(e) => mouseMove(e)"
             @mouseup="(e) => mouseUp(e)"
@@ -65,11 +67,18 @@
       </div>
       <div
         v-if="category.isOpened"
+        id="elementsParent"
         class="flex flex-wrap w-full ml-4 items-center transition-all duration-200"
       >
-        <template v-for="(element, index) in category.elems">
-          <Element :key="index" :element="element" />
-        </template>
+        <div v-for="(element, index) in category.elems"
+          :key="index"
+          :data-id="element.id"
+          :data-category-id="category.id"
+          :data-order="element.order"
+          class="w-full"
+        >
+          <Element :categoryId="category.id" :element="element" :elements="category.elems" />
+        </div>
       </div>
     </div>
 
@@ -114,14 +123,14 @@ export default {
       mouseDownElement: null,
       isMovingStarted: false,
       startOrder: null,
+      destinationOrder: undefined,
       startCategoryId: null,
       domElements: [],
+      foundElement: null,
       elementPosition: [],
       nextFind: false,
     };
   },
-
-  created() {},
 
   mounted() {
     this.setDomElements();
@@ -171,13 +180,13 @@ export default {
             id: elements[i].dataset.id,
             order: parseFloat(elements[i].dataset.order),
             top: resultTop,
+            left: elements[i].offsetLeft,
             bottom: resultBottom,
-            elems: [], // this.getCardElements(elements[i].id)
           });
         }
       }
       // console.log('categories: ', this.categories);
-      console.log('elementBorders:', elementBorders);
+      // console.log('elementBorders:', elementBorders);
       this.domElements = elementBorders;
     },
 
@@ -194,6 +203,18 @@ export default {
       const elementId = e.target.dataset.id;
       this.startCategoryId = elementId;
       const element = document.querySelector(`.${elementId}`);
+      // console.log('mouseDown e.target: ', e.target);
+      // console.log('mouseDown element: ', element);
+      // console.log('mouseDown element.offsetLeft: ', element.offsetLeft);
+      // console.log('mouseDown element.offsetTop: ', element.offsetTop);
+
+      const element1 = e.target.parentElement;
+      // console.log('mouseDown element1: ', element1);
+      const element2 = e.target.parentElement.parentElement;
+      // console.log('mouseDown element2: ', element2);
+      // console.log('mouseDown element2.offsetLeft: ', element2.offsetLeft);
+      // console.log('mouseDown element2.offsetTop: ', element2.offsetTop);
+
       this.mouseDownElement = element;
       this.globalCoords = {
         x: e.screenX,
@@ -203,6 +224,8 @@ export default {
         x: element.offsetLeft,
         y: element.offsetTop,
       };
+      // console.log('element: ', element);
+      // console.log('this.windowCoords down: ', this.windowCoords);
       this.elementToDrag(e, element);
     },
 
@@ -225,7 +248,6 @@ export default {
       element.style.marginTop = '0px';
       element.style.position = 'absolute';
       if (element.nextElementSibling !== null) {
-        console.log('element.nextElementSibling: ', element.nextElementSibling);
         element.nextSibling.style.display = 'none'; // если у категории раскрыты эл-ты
       }
     },
@@ -235,12 +257,19 @@ export default {
     },
 
     setMouseUpElementStyles() {
-      this.mouseDownElement.style.left = this.windowCoords.x + 'px';
-      this.mouseDownElement.style.top = this.windowCoords.y + 'px';
-
       this.mouseDownElement.style.transitionProperty = 'left, top, box-shadow';
       this.mouseDownElement.style.transitionDuration = this.effectWait + 'ms';
       this.mouseDownElement.style.transitionTimingFunction = 'linear';
+
+      if (this.foundElement !== null) {
+        console.log('this.foundElement:', this.foundElement);
+        console.log('this.windowCoords:', this.windowCoords);
+        this.mouseDownElement.style.left = this.foundElement.left + 'px';
+        this.mouseDownElement.style.top = this.foundElement.top - 1 + 'px';
+      } else {
+        this.mouseDownElement.style.left = this.windowCoords.x + 'px';
+        this.mouseDownElement.style.top = this.windowCoords.y + 'px';
+      }
 
       setTimeout(() => {
         this.mouseDownElement.style.boxShadow = '0px 0px 0px gray';
@@ -272,12 +301,7 @@ export default {
 
     moveElement(e) {
       const mouseShiftX = e.screenX - this.globalCoords.x;
-      const mouseShiftY = e.screenY - this.globalCoords.y - 4;
-
-      // const translate = 'translate(' + mouseShiftX + 'px,' + mouseShiftY + 'px)';
-      // this.mouseDownElement.style.transform = translate;
-      // console.log('this.mouseDownElement.style.transform: ', this.mouseDownElement.style.transform);
-
+      const mouseShiftY = e.screenY - this.globalCoords.y;
       this.mouseDownElement.style.left =
         this.windowCoords.x + mouseShiftX + 'px';
       this.mouseDownElement.style.top =
@@ -302,11 +326,12 @@ export default {
         findEnterElement !== undefined &&
         findEnterElement.id !== 'target#position'
       ) {
-        console.log('findEnterElement.order: ', findEnterElement.order);
-        // console.log('this.startOrder: ', this.startOrder);
+        this.foundElement = findEnterElement;
+
+        // console.log('findEnterElement.order: ', findEnterElement.order);
 
         if (this.startOrder !== findEnterElement.order) {
-          console.log('move: ', { start: this.startOrder, found: findEnterElement.order });
+          // console.log('move: ', { start: this.startOrder, found: findEnterElement.order });
           this.swapCategories({
             sourceOrder: this.startOrder,
             destinationOrder: findEnterElement.order,
@@ -314,6 +339,7 @@ export default {
           });
 
           this.startOrder = findEnterElement.order;
+          this.destinationOrder = findEnterElement.order;
         }
         this.nextFind = false;
       }
@@ -323,6 +349,7 @@ export default {
       this.isMovingStarted = false;
       if (this.mouseDownElement !== null) {
         this.phantomElement(e);
+        this.foundElement = null;
       }
     },
 
@@ -332,9 +359,10 @@ export default {
         this.removePhantomElement({
           categoryId: this.startCategoryId,
           fromElementId: e.target.dataset.id,
-          toElementOrder: this.startOrder,
+          toElementOrder: this.destinationOrder,
           type: 'category'
         });
+        this.destinationOrder = undefined;
       }, this.effectWait);
     },
 

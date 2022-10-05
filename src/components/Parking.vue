@@ -1,8 +1,8 @@
 <template>
-  <div class="w-full -border border-blue-300 pl-4 mt-6">
-    <template v-for="(element, index) in freeElements">
-      <Element :key="index" :element="element" />
-    </template>
+  <div class="w-full border border-blue-300 pl-4 mt-6">
+    <div v-for="(element, index) in freeElements" :key="index">
+      <Element :element="element" />
+    </div>
   </div>
 </template>
 

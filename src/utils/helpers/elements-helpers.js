@@ -4,6 +4,8 @@ export const addPhantom = (
   categoryId = '',
   { sourceOrder, destinationOrder, title, swap = false }
 ) => {
+  // console.log('addPhantom: ', { type, categoryId, sourceOrder, destinationOrder, title, swap });
+
   let element = {};
   let order = 0.0;
   const moveDown = sourceOrder <= destinationOrder;
@@ -61,25 +63,56 @@ export const addPhantom = (
   }
 };
 
-export const moveElement = ({ elements, elementId, newElementOrder }) => {
+export const addMovinglement = ({ elements, movingElement, fromElementId, oldElementOrder, newElementOrder }) => {
+  return reorder(
+    moveElement({
+      elements: [...elements, movingElement],
+      elementId: fromElementId,
+      oldElementOrder,
+      newElementOrder
+    })
+  );
+};
+
+export const moveElement = ({ elements, elementId, oldElementOrder, newElementOrder }) => {
+  oldElementOrder = parseFloat(oldElementOrder);
+  newElementOrder = parseFloat(newElementOrder);
+  let order = 0;
+  // let count = 1;
   // console.log('isNaN(newElementOrder): ', isNaN(newElementOrder));
+  console.log('fromElementId:', elementId);
+  console.log('oldElementOrder:', oldElementOrder);
+  console.log('newElementOrder:', newElementOrder);
+
   if (!isNaN(newElementOrder)) {
+    // up = oldElementOrder > newElementOrder, down - oldElementOrder <= newElementOrder
+    const moveDown = oldElementOrder <= newElementOrder;
+    if (moveDown) {
+      order = newElementOrder + 0.5;
+    } else {
+      order = newElementOrder - 0.5;
+    }
+
     const changedElements = elements.map((current) => {
-      // console.log('{ current, elementId }: ', { current, elementId, newElementOrder: parseFloat(newElementOrder) });
+      // console.log('count:', count);
+      // console.log('current:', current);
+      // console.log('order:', order);
+      // count++;
 
       current.targetPosition = false;
       if (current.id === elementId) {
-        current.order = parseFloat(newElementOrder);
+        current.order = order;
       }
       return current;
     });
+    // console.log('changedElements:', changedElements);
     return changedElements.sort(sortElements);
   }
   return elements;
 };
 
 export const reorder = (elements) => {
-  let index = 1;
+  let index = 0;
   const reorderedElements = elements.map((element) => {
     element.order = index++;
     return element;

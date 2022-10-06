@@ -1,7 +1,12 @@
 <template>
-  <div class="w-full border border-blue-300 pl-4 mt-6">
-    <div v-for="(element, index) in freeElements" :key="index">
-      <Element :element="element" />
+  <div class="elementsParent w-full -border border-blue-300 pl-4 mt-6 min-h-[2.25rem]">
+    <div v-for="(element, index) in freeElements"
+      :key="index"
+      :data-id="element.id"
+      :data-category-id="'parking'"
+      :data-order="element.order"
+    >
+      <Element :categoryId="'parking'" :element="element" :elements="freeElements" />
     </div>
   </div>
 </template>
@@ -16,12 +21,6 @@ export default {
   name: 'AppParking',
   components: {
     Element,
-  },
-
-  data() {
-    return {
-      title: '',
-    };
   },
 
   computed: {

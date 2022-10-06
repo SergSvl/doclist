@@ -21,6 +21,14 @@
       </div>
     </div>
     <div
+      v-else-if="element.id === 'parking-0'"
+      :data-id="element.id"
+      :data-category-id="categoryId"
+      :data-order="element.order"
+      :class="`${element.id} w-full -border h-1`"
+    >
+    </div>
+    <div
       v-else-if="element.id !== 'element-0'"
       :data-id="element.id"
       :data-category-id="categoryId"
@@ -58,9 +66,11 @@ import { mapActions } from 'vuex';
 import editImage from '@/assets/svg/edit.svg';
 import removeImage from '@/assets/svg/deleteElement.svg';
 import moveImage from '@/assets/svg/move.svg';
+import draggable from '@/mixins/draggable';
 
 export default {
   name: 'AppElement',
+  mixins: [draggable],
   props: {
     categoryId: {
       type: String,
@@ -95,6 +105,8 @@ export default {
       foundElement: null,
       elementPosition: [],
       nextFind: false,
+      // stepOfCheck: 5,
+      // step: 0,
     };
   },
 
@@ -116,32 +128,42 @@ export default {
       }
 
       const elementBorders = [];
-      const elements = document.getElementById('elementsParent').childNodes;
+      // const categoryElements = document.getElementById('categoriesParent').childNodes;
+      // console.log('categoryElements:', categoryElements);
+      const categoryElements = document.querySelectorAll('.elementsParent');
 
-      console.log('setDomElements:', elements);
+      for (let k = 0; k < categoryElements.length; k++) {
+        const elements = categoryElements[k].childNodes;
+        // console.log('elements:', elements);
 
-      for (let i = 0; i < elements.length; i++) {
-        const height = parseFloat(elements[i].offsetHeight);
-        const resultTop = elements[i].offsetTop + 1;
-        const resultBottom = elements[i].offsetTop + height - 1;
+        for (let i = 0; i < elements.length; i++) {
+          const height = parseFloat(elements[i].offsetHeight);
+          const resultTop = elements[i].offsetTop;
+          const resultBottom = elements[i].offsetTop + height;
+          // const resultTop = elements[i].offsetTop + 1;
+          // const resultBottom = elements[i].offsetTop + height - 1;
 
-        // console.log(' elements[' + i + ']:', elements[i]);
-        // console.log(' elements[' + i + '].title:', this.elements[i].title);
-        // console.log(' elements[' + i + '].dataset:', elements[i].dataset);
-        // console.log(' height:', height);
-        // console.log(' resultTop:', resultTop);
-        // console.log(' resultBottom:', resultBottom);
-        // // console.log('mouseDownElement.dataset.id:', this.mouseDownElement.dataset.id);
-        console.log('---');
+          // console.log(' categoryElements[' + k + ']');
+          // console.log(' elements[' + i + ']:', elements[i]);
+          // console.log(' elements[' + i + '].dataset.id:', elements[i].dataset.id);
+          // console.log(' elements[' + i + '].title:', this.elements[i].title);
+          // console.log(' elements[' + i + '].dataset:', elements[i].dataset);
+          // console.log(' height:', height);
+          // console.log(' resultTop:', resultTop);
+          // console.log(' resultBottom:', resultBottom);
+          // // console.log('mouseDownElement.dataset.id:', this.mouseDownElement.dataset.id);
+          // console.log('---');
 
-        if (elements[i].dataset.id !== this.mouseDownElement.dataset.id && elements[i].id !== 'target#position') {
-          elementBorders.push({
-            id: elements[i].dataset.id,
-            order: parseFloat(elements[i].dataset.order),
-            top: resultTop,
-            left: elements[i].offsetLeft,
-            bottom: resultBottom,
-          });
+          if (elements[i].dataset.id !== this.mouseDownElement.dataset.id && elements[i].id !== 'target#position' && elements[i].dataset.id !== 'element-0') {
+            elementBorders.push({
+              id: elements[i].dataset.id,
+              categoryId: elements[i].dataset.categoryId,
+              order: parseFloat(elements[i].dataset.order),
+              top: resultTop,
+              left: elements[i].offsetLeft,
+              bottom: resultBottom,
+            });
+          }
         }
       }
       // console.log('categories: ', this.categories);
@@ -158,6 +180,9 @@ export default {
       const elementId = e.target.dataset.id;
       const element = document.querySelector(`.${elementId}`);
       this.startCategoryId = element.dataset.categoryId;
+      this.foundElement = {
+        categoryId: element.dataset.categoryId,
+      };
       this.mouseDownElement = element;
       this.globalCoords = {
         x: e.screenX,
@@ -175,6 +200,7 @@ export default {
       // console.log('elementToDrag: ', element);
       this.setMouseDownElementStyles(e, element);
       const order = element.dataset.order;
+      // console.log('elementToDrag order: ', order);
       this.startOrder = order;
       this.addElementPhantom({ categoryId: element.dataset.categoryId, sourceOrder: order, destinationOrder: order, title: this.element.title, type: 'element' });
     },
@@ -234,16 +260,33 @@ export default {
     },
 
     moveElement(e) {
+      // if (this.step < this.stepOfCheck) {
+      // this.step++;
+
       const mouseShiftX = e.screenX - this.globalCoords.x;
       const mouseShiftY = e.screenY - this.globalCoords.y;
+
+      // console.log('screenX, screenY: ', { screenX: e.screenX, screenY: e.screenY });
+      // console.log('x, y: ', { x: this.globalCoords.x, y: this.globalCoords.y });
+      // console.log('mouseShiftX, mouseShiftY: ', { mouseShiftX, mouseShiftY });
+
       this.mouseDownElement.style.left =
-        this.windowCoords.x + mouseShiftX + 'px';
+      this.windowCoords.x + mouseShiftX + 'px';
       this.mouseDownElement.style.top =
-        this.windowCoords.y + mouseShiftY + 'px';
+      this.windowCoords.y + mouseShiftY + 'px';
+      // console.log('windowCoordsX, windowCoordsY: ', { windowCoordsX: this.windowCoords.x, windowCoordsY: this.windowCoords.y });
+      // console.log('left, top: ', { left: this.mouseDownElement.style.left, top: this.mouseDownElement.style.top });
+      // }
+
       this.move(e);
     },
 
     move(e) {
+      // if (this.step < this.stepOfCheck) {
+      //   this.step++;
+      //   return;
+      // }
+
       const findEnterElement = this.domElements.filter((elem) => {
         if (elem.top <= e.clientY && e.clientY <= elem.bottom) {
           this.nextFind = true;
@@ -253,7 +296,13 @@ export default {
         }
       })[0];
 
-      // console.log('findEnterElement.order: ', findEnterElement.order);
+      // if (findEnterElement !== undefined) {
+      //   console.log('findEnterElement.id: ', findEnterElement.id);
+      //   console.log('findEnterElement.categoryId: ', findEnterElement.categoryId);
+      //   console.log('findEnterElement.order: ', findEnterElement.order);
+      //   console.log('findEnterElement.top: ', findEnterElement.top);
+      //   console.log('findEnterElement.bottom: ', findEnterElement.bottom);
+      // }
 
       if (
         this.nextFind &&
@@ -264,18 +313,21 @@ export default {
 
         // console.log('findEnterElement.order: ', findEnterElement.order);
 
+        // if (this.startOrder !== findEnterElement.order && this.startCategoryId !== findEnterElement.categoryId) {
         if (this.startOrder !== findEnterElement.order) {
           // console.log('move: ', { start: this.startOrder, found: findEnterElement.order });
           this.swapElements({
             sourceOrder: this.startOrder,
             destinationOrder: findEnterElement.order,
-            categoryId: this.startCategoryId,
+            fromCategoryId: this.startCategoryId,
+            toCategoryId: findEnterElement.categoryId,
           });
 
           this.startOrder = findEnterElement.order;
           this.destinationOrder = findEnterElement.order;
         }
         this.nextFind = false;
+        // this.step = 0;
       }
     },
 
@@ -283,7 +335,6 @@ export default {
       this.isMovingStarted = false;
       if (this.mouseDownElement !== null) {
         this.phantomElement(e);
-        this.foundElement = null;
       }
     },
 
@@ -291,12 +342,15 @@ export default {
       this.setMouseUpElementStyles();
       setTimeout(() => {
         this.removePhantomElement({
-          categoryId: this.startCategoryId,
+          fromCategoryId: this.startCategoryId,
+          toCategoryId: this.foundElement.categoryId,
           fromElementId: e.target.dataset.id,
+          fromElementOrder: this.mouseDownElement.dataset.order,
           toElementOrder: this.destinationOrder,
           type: 'element'
         });
         this.destinationOrder = undefined;
+        this.foundElement = null;
       }, this.effectWait);
     },
   },

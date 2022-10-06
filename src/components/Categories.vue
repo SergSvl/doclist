@@ -22,11 +22,6 @@ export default {
     Category,
   },
 
-  data() {
-    return {
-    };
-  },
-
   computed: {
     ...mapGetters('documents', ['categories', 'filteredCategories', 'isFiltration']),
   },
@@ -50,12 +45,6 @@ export default {
 
   created() {
     this.initialization();
-  },
-
-  updated() {
-    // console.log('updated: ');
-    // console.log('state categories: ', this.categories);
-    // console.log('state filteredCategories: ', this.filteredCategories);
   },
 };
 </script>

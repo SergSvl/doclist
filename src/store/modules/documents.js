@@ -1,5 +1,5 @@
 import { setLSData } from '@/utils/helpers/local-storage-helpers';
-import { addPhantom, moveElement, reorder } from '@/utils/helpers/elements-helpers';
+import { addPhantom, moveElement, reorder, addMovinglement } from '@/utils/helpers/elements-helpers';
 import { LOCAL_STORAGE_KEYS } from '@/utils/local-storage-keys';
 
 export default {
@@ -27,7 +27,7 @@ export default {
           {
             id: 'element-1',
             order: 1,
-            title: 'Паспорт',
+            title: 'Паспорт 1',
             targetPosition: false,
           },
           {
@@ -44,7 +44,13 @@ export default {
         id: 'category-2',
         order: 2,
         title: 'Обязательные для трудоустройства',
-        elems: [],
+        elems: [
+          {
+            id: 'element-0',
+            order: 0,
+            targetPosition: false,
+          },
+        ],
         isOpened: false,
         targetPosition: false,
       },
@@ -61,7 +67,7 @@ export default {
           {
             id: 'element-11',
             order: 1,
-            title: 'Паспорт',
+            title: 'Паспорт 2',
             targetPosition: false,
           },
           {
@@ -75,7 +81,13 @@ export default {
         targetPosition: false,
       },
     ],
-    freeElements: [],
+    freeElements: [
+      {
+        id: 'parking-0',
+        order: 0,
+        targetPosition: false,
+      },
+    ],
     isPhantomCreated: false,
   },
 
@@ -119,7 +131,7 @@ export default {
       setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
     },
     addElement(state, { title }) {
-      const order = state.freeElements.length + 1;
+      const order = state.freeElements.length;
       state.freeElements.push({
         id: `element-${Date.now()}`,
         order,
@@ -130,8 +142,15 @@ export default {
     },
     removeElement(state, { id }) {
       const freeElements = state.freeElements.filter(element => element.id !== id);
+      if (!freeElements.length) {
+        freeElements.push({
+          id: 'parking-0',
+          order: 0,
+          targetPosition: false,
+        });
+      }
       state.freeElements = freeElements;
-      setLSData(LOCAL_STORAGE_KEYS.freeElements, state.freeElements);
+      setLSData(LOCAL_STORAGE_KEYS.freeElements, freeElements);
     },
     filterCategories(state, { text }) {
       state.isFiltration = true;
@@ -183,31 +202,45 @@ export default {
             );
             break;
           case 'element':
-            state.categories = state.categories.map((category) => {
-              if (category.id === categoryId) {
-                category.elems = addPhantom(
-                  type,
-                  category.elems,
-                  null,
-                  {
-                    sourceOrder,
-                    destinationOrder,
-                    title
-                  }
-                );
-              }
-              return category;
-            });
+            if (categoryId === 'parking') {
+              state.freeElements = addPhantom(
+                type,
+                state.freeElements,
+                categoryId,
+                {
+                  sourceOrder,
+                  destinationOrder,
+                  title
+                }
+              );
+            } else {
+              state.categories = state.categories.map((category) => {
+                if (category.id === categoryId) {
+                  category.elems = addPhantom(
+                    type,
+                    category.elems,
+                    null,
+                    {
+                      sourceOrder,
+                      destinationOrder,
+                      title
+                    }
+                  );
+                }
+                return category;
+              });
+            }
             break;
           default:
         }
         state.isPhantomCreated = true;
       }
     },
-    removePhantomElement(state, { categoryId, fromElementId, toElementOrder, type }) {
-      console.log('removePhantomElement: ', { categoryId, fromElementId, toElementOrder, type });
+    removePhantomElement(state, { fromCategoryId, toCategoryId, fromElementId, fromElementOrder, toElementOrder, type }) {
+      console.log('removePhantomElement: ', { fromCategoryId, toCategoryId, fromElementId, fromElementOrder, toElementOrder, type });
       let swappedCategories;
       let filteredCategories;
+      let movingElement = null;
 
       switch (type) {
         case 'category':
@@ -215,24 +248,102 @@ export default {
           swappedCategories = moveElement({
             elements: filteredCategories,
             elementId: fromElementId,
+            oldElementOrder: fromElementOrder,
             newElementOrder: toElementOrder
           });
-          console.log('moveElement: ', swappedCategories);
+          // console.log('moveElement: ', swappedCategories);
           state.categories = reorder(swappedCategories);
           break;
         case 'element':
-          state.categories = state.categories.map((category) => {
-            if (category.id === categoryId) {
-              const filteredElements = category.elems.filter(element => element.id !== 'element#phantom');
-              const swappedElements = moveElement({
-                elements: filteredElements,
-                elementId: fromElementId,
-                newElementOrder: toElementOrder
+          /**
+           * 1) Перемещение внутри категории
+           * 2) Перемещение между катерогий
+           * 3) Перемещение между категорией и парковкой
+          */
+          if (fromCategoryId === 'parking') {
+            // const filteredElements = state.freeElements.filter(element => element.id !== 'element#phantom');
+            state.freeElements = state.freeElements.filter((element) => {
+              if (element.id === fromElementId) {
+                movingElement = element;
+                return false;
+              };
+              return element.id !== 'element#phantom';
+            });
+            state.freeElements = reorder(state.freeElements);
+
+            if (toCategoryId === 'parking') {
+              state.freeElements = addMovinglement({ elements: state.freeElements, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+            } else {
+              state.categories = state.categories.map((category) => {
+                if (category.id === toCategoryId) {
+                  category.elems = addMovinglement({ elements: category.elems, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                }
+                return category;
               });
-              category.elems = reorder(swappedElements);
             }
-            return category;
-          });
+          } else {
+            // 1) Проверка, где перемещаем: внутри категории или нет?
+            if (fromCategoryId === toCategoryId) {
+              // действуем по упрощенной схеме - без копирования эл-та
+              state.categories = state.categories.map((category) => {
+                if (category.id === fromCategoryId) {
+                  category.elems = category.elems.filter((element) => element.id !== 'element#phantom');
+                  const swappedElements = moveElement({
+                    elements: category.elems,
+                    elementId: fromElementId,
+                    oldElementOrder: fromElementOrder,
+                    newElementOrder: toElementOrder
+                  });
+                  category.elems = reorder(swappedElements);
+                }
+                return category;
+              });
+            } else {
+              // Здесь нужно сделать тоже самое, но с промежуточным копированием перемещаемого эл-та
+              // 1) Копируем эл-т, потом его удаляем из стартовой категории, попутно удаляем фантом
+              state.categories = state.categories.map((category) => {
+                if (category.id === fromCategoryId) {
+                  category.elems = category.elems.filter((element) => {
+                    if (element.id === fromElementId) {
+                      movingElement = element;
+                      return false;
+                    };
+                    return element.id !== 'element#phantom';
+                  });
+                  category.elems = reorder(category.elems);
+                }
+                return category;
+              });
+
+              // 2) Проверка - куда переносим эл-т: в другую категорию или в парковку?
+              if (toCategoryId === 'parking') {
+                state.freeElements = addMovinglement({ elements: state.freeElements, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                // state.freeElements = [...state.freeElements, movingElement];
+                // const swappedElements = moveElement({
+                //   elements: state.freeElements,
+                //   elementId: fromElementId,
+                //   oldElementOrder: fromElementOrder, // здесь эта пара параметров тоже должна работать
+                //   newElementOrder: toElementOrder
+                // });
+                // state.freeElements = reorder(swappedElements);
+              } else {
+                state.categories = state.categories.map((category) => {
+                  if (category.id === toCategoryId) {
+                    category.elems = addMovinglement({ elements: category.elems, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                    // category.elems = [...category.elems, movingElement];
+                    // const swappedElements = moveElement({
+                    //   elements: category.elems,
+                    //   elementId: fromElementId,
+                    //   oldElementOrder: fromElementOrder,
+                    //   newElementOrder: toElementOrder
+                    // });
+                    // category.elems = reorder(swappedElements);
+                  }
+                  return category;
+                });
+              }
+            }
+          }
           break;
         default:
       }
@@ -255,14 +366,22 @@ export default {
         }
       );
     },
-    swapElements(state, { sourceOrder, destinationOrder, categoryId }) {
-      // console.log('swapElements: ', { sourceOrder, destinationOrder, categoryId });
+    swapElements(state, { sourceOrder, destinationOrder, fromCategoryId, toCategoryId }) {
+      console.log('swapElements: ', { sourceOrder, destinationOrder, fromCategoryId, toCategoryId });
 
-      state.categories = state.categories.map((category) => {
-        if (category.id === categoryId) {
-          category.elems = addPhantom(
+      if (fromCategoryId === toCategoryId) {
+        if (toCategoryId === 'parking') {
+          // внутри парковки
+          state.freeElements = state.freeElements.map((element) => {
+            if (element.order === destinationOrder) {
+              element.targetPosition = true;
+            }
+            return element;
+          });
+
+          state.freeElements = addPhantom(
             'element',
-            category.elems,
+            state.freeElements,
             null,
             {
               sourceOrder,
@@ -271,9 +390,71 @@ export default {
               swap: true
             }
           );
+        } else {
+          // внутри категории
+          state.categories = state.categories.map((category) => {
+            if (category.id === fromCategoryId) {
+              category.elems = category.elems.map((element) => {
+                element.targetPosition = false;
+                return element;
+              });
+            }
+            return category;
+          });
+
+          state.categories = state.categories.map((category) => {
+            if (category.id === toCategoryId) {
+              category.elems = addPhantom(
+                'element',
+                category.elems,
+                null,
+                {
+                  sourceOrder,
+                  destinationOrder,
+                  title: '',
+                  swap: true
+                }
+              );
+            }
+            return category;
+          });
         }
-        return category;
-      });
+      } else {
+        // между категориями
+        if (fromCategoryId === 'parking') {
+          // из парковки в категорию
+
+        } else {
+          // из категории в парковку
+
+        }
+      }
+
+      // if (toCategoryId === 'parking') {
+      //   state.freeElements = state.freeElements.map((element) => {
+      //     if (element.order === destinationOrder) {
+      //       element.targetPosition = true;
+      //     }
+      //     return element;
+      //   });
+      // } else {
+      //   state.categories = state.categories.map((category) => {
+      //     if (category.id === toCategoryId) {
+      //       category.elems = addPhantom(
+      //         'element',
+      //         category.elems,
+      //         null,
+      //         {
+      //           sourceOrder,
+      //           destinationOrder,
+      //           title: '',
+      //           swap: true
+      //         }
+      //       );
+      //     }
+      //     return category;
+      //   });
+      // }
     },
   },
 

@@ -21,9 +21,15 @@
         v-if="category.isOpened"
         class="flex flex-wrap w-full ml-4 items-center transition-all duration-200 opacity-30"
       >
-        <template v-for="(element, index) in category.elems">
-          <Element :key="index" :element="element" />
-        </template>
+        <div v-for="(element, index) in category.elems"
+          :key="index"
+          :data-id="element.id"
+          :data-category-id="category.id"
+          :data-order="element.order"
+          class="w-full"
+        >
+          <Element :categoryId="category.id" :element="element" :elements="category.elems" />
+        </div>
       </div>
     </div>
 
@@ -67,8 +73,7 @@
       </div>
       <div
         v-if="category.isOpened"
-        id="elementsParent"
-        class="flex flex-wrap w-full ml-4 items-center transition-all duration-200"
+        class="elementsParent flex flex-wrap w-full ml-4 items-center transition-all duration-200"
       >
         <div v-for="(element, index) in category.elems"
           :key="index"
@@ -93,9 +98,11 @@ import editImage from '@/assets/svg/edit.svg';
 import removeImage from '@/assets/svg/deleteCategory.svg';
 import moveImage from '@/assets/svg/move.svg';
 import Element from '@/components/Element.vue';
+import draggable from '@/mixins/draggable';
 
 export default {
   name: 'AppCategory',
+  mixins: [draggable],
   props: {
     category: {
       type: Object,
@@ -357,8 +364,10 @@ export default {
       this.setMouseUpElementStyles();
       setTimeout(() => {
         this.removePhantomElement({
-          categoryId: this.startCategoryId,
+          fromCategoryId: this.startCategoryId,
+          toCategoryId: null,
           fromElementId: e.target.dataset.id,
+          fromElementOrder: this.startOrder,
           toElementOrder: this.destinationOrder,
           type: 'category'
         });

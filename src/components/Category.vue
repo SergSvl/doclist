@@ -67,7 +67,7 @@
             :draggable="false"
             @mousedown="(e) => mouseDown(e)"
             @mousemove="(e) => mouseMove(e)"
-            @mouseup="(e) => mouseUp(e)"
+            @mouseup="(e) => mouseUpOnCategory(e)"
           />
         </div>
       </div>
@@ -94,9 +94,6 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import Button from '@/components/Button.vue';
-import editImage from '@/assets/svg/edit.svg';
-import removeImage from '@/assets/svg/deleteCategory.svg';
-import moveImage from '@/assets/svg/move.svg';
 import Element from '@/components/Element.vue';
 import draggable from '@/mixins/draggable';
 
@@ -120,32 +117,8 @@ export default {
 
   data() {
     return {
-      editImage,
-      removeImage,
-      moveImage,
-      effectWait: 300,
-      phantomId: 'phantom',
-      globalCoords: { x: null, y: null },
-      windowCoords: { x: null, y: null },
-      mouseDownElement: null,
-      isMovingStarted: false,
-      startOrder: null,
-      destinationOrder: undefined,
-      startCategoryId: null,
       domElements: [],
-      foundElement: null,
-      elementPosition: [],
-      nextFind: false,
     };
-  },
-
-  mounted() {
-    this.setDomElements();
-  },
-
-  watch: {
-    categories() { setTimeout(() => { this.setDomElements(); }, 0); },
-    mouseDownElement() { setTimeout(() => { this.setDomElements(); }, 0); }
   },
 
   methods: {
@@ -206,68 +179,27 @@ export default {
     },
 
     mouseDown(e) {
-      // console.log('mouseDown: ', e);
-      const elementId = e.target.dataset.id;
+      const { element, elementId } = this.getClickedElement(e);
+
       this.startCategoryId = elementId;
-      const element = document.querySelector(`.${elementId}`);
       // console.log('mouseDown e.target: ', e.target);
       // console.log('mouseDown element: ', element);
       // console.log('mouseDown element.offsetLeft: ', element.offsetLeft);
       // console.log('mouseDown element.offsetTop: ', element.offsetTop);
 
-      const element1 = e.target.parentElement;
+      // const element1 = e.target.parentElement;
       // console.log('mouseDown element1: ', element1);
-      const element2 = e.target.parentElement.parentElement;
+      // const element2 = e.target.parentElement.parentElement;
       // console.log('mouseDown element2: ', element2);
       // console.log('mouseDown element2.offsetLeft: ', element2.offsetLeft);
       // console.log('mouseDown element2.offsetTop: ', element2.offsetTop);
 
-      this.mouseDownElement = element;
-      this.globalCoords = {
-        x: e.screenX,
-        y: e.screenY,
-      };
-      this.windowCoords = {
-        x: element.offsetLeft,
-        y: element.offsetTop,
-      };
       // console.log('element: ', element);
       // console.log('this.windowCoords down: ', this.windowCoords);
-      this.elementToDrag(e, element);
-    },
-
-    elementToDrag(e, element) {
-      // console.log('mouseDown element: ', element);
-      this.setMouseDownElementStyles(e, element);
-      const order = element.dataset.order;
-      this.startOrder = order;
-      this.addElementPhantom({ categoryId: e.target.dataset.id, sourceOrder: order, destinationOrder: order, title: this.category.title, type: 'category' });
-    },
-
-    setMouseDownElementStyles(e, element) {
-      const width = element.clientWidth + 'px';
-      element.style.width = width;
-      element.style.transitionProperty = 'none';
-      element.style.boxShadow = '2px 2px 10px rgba(52, 137, 255, 0.9)';
-      element.style.zIndex = '20';
-      element.style.left = element.offsetLeft + 'px';
-      element.style.top = element.offsetTop + 'px';
-      element.style.marginTop = '0px';
-      element.style.position = 'absolute';
-      if (element.nextElementSibling !== null) {
-        element.nextSibling.style.display = 'none'; // если у категории раскрыты эл-ты
-      }
-    },
-
-    setMouseMoveStyles() {
-      this.mouseDownElement.style.marginTop = '0px';
+      this.categoryToDrag(e, element);
     },
 
     setMouseUpElementStyles() {
-      this.mouseDownElement.style.transitionProperty = 'left, top, box-shadow';
-      this.mouseDownElement.style.transitionDuration = this.effectWait + 'ms';
-      this.mouseDownElement.style.transitionTimingFunction = 'linear';
-
       if (this.foundElement !== null) {
         console.log('this.foundElement:', this.foundElement);
         console.log('this.windowCoords:', this.windowCoords);
@@ -277,6 +209,10 @@ export default {
         this.mouseDownElement.style.left = this.windowCoords.x + 'px';
         this.mouseDownElement.style.top = this.windowCoords.y + 'px';
       }
+
+      this.mouseDownElement.style.transitionProperty = 'left, top, box-shadow';
+      this.mouseDownElement.style.transitionDuration = this.effectWait + 'ms';
+      this.mouseDownElement.style.transitionTimingFunction = 'linear';
 
       setTimeout(() => {
         this.mouseDownElement.style.boxShadow = '0px 0px 0px gray';
@@ -294,26 +230,6 @@ export default {
         this.mouseDownElement.style.zIndex = '';
         this.mouseDownElement = null;
       }, this.effectWait * 2);
-    },
-
-    mouseMove(e) {
-      if (this.mouseDownElement !== null) {
-        if (!this.isMovingStarted) {
-          this.setMouseMoveStyles();
-          this.isMovingStarted = true;
-        }
-        this.moveElement(e);
-      }
-    },
-
-    moveElement(e) {
-      const mouseShiftX = e.screenX - this.globalCoords.x;
-      const mouseShiftY = e.screenY - this.globalCoords.y;
-      this.mouseDownElement.style.left =
-        this.windowCoords.x + mouseShiftX + 'px';
-      this.mouseDownElement.style.top =
-        this.windowCoords.y + mouseShiftY + 'px';
-      this.move(e);
     },
 
     move(e) {
@@ -351,30 +267,6 @@ export default {
         this.nextFind = false;
       }
     },
-
-    mouseUp(e) {
-      this.isMovingStarted = false;
-      if (this.mouseDownElement !== null) {
-        this.phantomElement(e);
-        this.foundElement = null;
-      }
-    },
-
-    phantomElement(e) {
-      this.setMouseUpElementStyles();
-      setTimeout(() => {
-        this.removePhantomElement({
-          fromCategoryId: this.startCategoryId,
-          toCategoryId: null,
-          fromElementId: e.target.dataset.id,
-          fromElementOrder: this.startOrder,
-          toElementOrder: this.destinationOrder,
-          type: 'category'
-        });
-        this.destinationOrder = undefined;
-      }, this.effectWait);
-    },
-
   },
 };
 </script>

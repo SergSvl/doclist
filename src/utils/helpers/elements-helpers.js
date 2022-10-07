@@ -23,14 +23,14 @@ export const addPhantom = (
   const phantom = {
     order: sourceOrder,
     title,
-    targetPosition: true
+    targetPosition: true,
   };
 
   // console.log('addPhantom: ', { sourceOrder, destinationOrder, order, categoryId, title });
 
   switch (type) {
     case 'category':
-      element = elements.filter(element => element.id === categoryId)[0];
+      element = elements.filter((element) => element.id === categoryId)[0];
       phantom.id = 'category#phantom';
       phantom.elems = element.elems;
       phantom.isOpened = element.isOpened;
@@ -43,7 +43,9 @@ export const addPhantom = (
 
   if (swap) {
     const newElements = elements.map((element) => {
-      if (element.order === (moveDown ? destinationOrder : (destinationOrder - 1))) {
+      if (
+        element.order === (moveDown ? destinationOrder : destinationOrder - 1)
+      ) {
         element.targetPosition = true;
       } else {
         element.targetPosition = false;
@@ -63,18 +65,29 @@ export const addPhantom = (
   }
 };
 
-export const addMovinglement = ({ elements, movingElement, fromElementId, oldElementOrder, newElementOrder }) => {
+export const addMovingElement = ({
+  elements,
+  movingElement,
+  fromElementId,
+  oldElementOrder,
+  newElementOrder,
+}) => {
   return reorder(
     moveElement({
       elements: [...elements, movingElement],
       elementId: fromElementId,
       oldElementOrder,
-      newElementOrder
+      newElementOrder,
     })
   );
 };
 
-export const moveElement = ({ elements, elementId, oldElementOrder, newElementOrder }) => {
+export const moveElement = ({
+  elements,
+  elementId,
+  oldElementOrder,
+  newElementOrder,
+}) => {
   oldElementOrder = parseFloat(oldElementOrder);
   newElementOrder = parseFloat(newElementOrder);
   let order = 0;
@@ -123,4 +136,32 @@ export const reorder = (elements) => {
 export const sortElements = (a, b) => {
   // console.log('sortElements: ', { a: a.order, b: b.order });
   return a.order > b.order ? 1 : -1;
+};
+
+export const fromCategoryOffPosition = (categories, fromCategoryId) => {
+  categories = categories.map((category) => {
+    if (category.id === fromCategoryId) {
+      category.elems = category.elems.map((element) => {
+        element.targetPosition = false;
+        return element;
+      });
+    }
+    return category;
+  });
+  return categories;
+};
+
+export const addPhantomToCategory = (categories, toCategoryId, sourceOrder, destinationOrder) => {
+  categories = categories.map((category) => {
+    if (category.id === toCategoryId) {
+      category.elems = addPhantom('element', category.elems, null, {
+        sourceOrder,
+        destinationOrder,
+        title: '',
+        swap: true,
+      });
+    }
+    return category;
+  });
+  return categories;
 };

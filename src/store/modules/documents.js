@@ -1,5 +1,12 @@
 import { setLSData } from '@/utils/helpers/local-storage-helpers';
-import { addPhantom, moveElement, reorder, addMovinglement } from '@/utils/helpers/elements-helpers';
+import {
+  addPhantom,
+  moveElement,
+  reorder,
+  addMovingElement,
+  fromCategoryOffPosition,
+  addPhantomToCategory,
+} from '@/utils/helpers/elements-helpers';
 import { LOCAL_STORAGE_KEYS } from '@/utils/local-storage-keys';
 
 export default {
@@ -92,10 +99,10 @@ export default {
   },
 
   getters: {
-    categories: state => state.categories,
-    freeElements: state => state.freeElements,
-    filteredCategories: state => state.filteredCategories,
-    isFiltration: state => state.isFiltration,
+    categories: (state) => state.categories,
+    freeElements: (state) => state.freeElements,
+    filteredCategories: (state) => state.filteredCategories,
+    isFiltration: (state) => state.isFiltration,
   },
 
   mutations: {
@@ -126,7 +133,9 @@ export default {
     },
     removeCategory(state, { id }) {
       // console.log('removeCategory: ', id);
-      const categories = state.categories.filter(category => category.id !== id);
+      const categories = state.categories.filter(
+        (category) => category.id !== id
+      );
       state.categories = categories;
       setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
     },
@@ -141,7 +150,9 @@ export default {
       setLSData(LOCAL_STORAGE_KEYS.freeElements, state.freeElements);
     },
     removeElement(state, { id }) {
-      const freeElements = state.freeElements.filter(element => element.id !== id);
+      const freeElements = state.freeElements.filter(
+        (element) => element.id !== id
+      );
       if (!freeElements.length) {
         freeElements.push({
           id: 'parking-0',
@@ -156,19 +167,24 @@ export default {
       state.isFiltration = true;
       const categoriesJSON = JSON.stringify(state.categories);
       const categories = JSON.parse(categoriesJSON);
-      const categoriesWithFilteredElems = categories.map(category => {
-        const elems = category.elems.filter(elem => elem.title.indexOf(text) !== -1);
+      const categoriesWithFilteredElems = categories.map((category) => {
+        const elems = category.elems.filter(
+          (elem) => elem.title.indexOf(text) !== -1
+        );
         category.elems = elems;
         return category;
       });
-      const filteredCategories = categoriesWithFilteredElems.filter(category => category.title.indexOf(text) !== -1 || category.elems.length);
+      const filteredCategories = categoriesWithFilteredElems.filter(
+        (category) =>
+          category.title.indexOf(text) !== -1 || category.elems.length
+      );
       state.filteredCategories = filteredCategories;
     },
     resetFiltration(state) {
       state.isFiltration = false;
     },
     toggleCategory(state, { id }) {
-      const categories = state.categories.map(category => {
+      const categories = state.categories.map((category) => {
         if (category.id === id) {
           category.isOpened = !category.isOpened;
         }
@@ -176,7 +192,7 @@ export default {
       });
       state.categories = categories;
       setLSData(LOCAL_STORAGE_KEYS.categories, state.categories);
-      const filteredCategories = state.filteredCategories.map(category => {
+      const filteredCategories = state.filteredCategories.map((category) => {
         if (category.id === id) {
           category.isOpened = !category.isOpened;
         }
@@ -184,22 +200,20 @@ export default {
       });
       state.filteredCategories = filteredCategories;
     },
-    addElementPhantom(state, { categoryId = null, sourceOrder, destinationOrder, title, type }) {
+    addElementPhantom(
+      state,
+      { categoryId = null, sourceOrder, destinationOrder, title, type }
+    ) {
       if (!state.isPhantomCreated) {
         // console.log('addElementPhantom: ', { categoryId, sourceOrder, destinationOrder, title, type });
 
         switch (type) {
           case 'category':
-            state.categories = addPhantom(
-              type,
-              state.categories,
-              categoryId,
-              {
-                sourceOrder,
-                destinationOrder,
-                title
-              }
-            );
+            state.categories = addPhantom(type, state.categories, categoryId, {
+              sourceOrder,
+              destinationOrder,
+              title,
+            });
             break;
           case 'element':
             if (categoryId === 'parking') {
@@ -210,22 +224,17 @@ export default {
                 {
                   sourceOrder,
                   destinationOrder,
-                  title
+                  title,
                 }
               );
             } else {
               state.categories = state.categories.map((category) => {
                 if (category.id === categoryId) {
-                  category.elems = addPhantom(
-                    type,
-                    category.elems,
-                    null,
-                    {
-                      sourceOrder,
-                      destinationOrder,
-                      title
-                    }
-                  );
+                  category.elems = addPhantom(type, category.elems, null, {
+                    sourceOrder,
+                    destinationOrder,
+                    title,
+                  });
                 }
                 return category;
               });
@@ -236,20 +245,39 @@ export default {
         state.isPhantomCreated = true;
       }
     },
-    removePhantomElement(state, { fromCategoryId, toCategoryId, fromElementId, fromElementOrder, toElementOrder, type }) {
-      console.log('removePhantomElement: ', { fromCategoryId, toCategoryId, fromElementId, fromElementOrder, toElementOrder, type });
+    removePhantomElement(
+      state,
+      {
+        fromCategoryId,
+        toCategoryId,
+        fromElementId,
+        fromElementOrder,
+        toElementOrder,
+        type,
+      }
+    ) {
+      console.log('removePhantomElement: ', {
+        fromCategoryId,
+        toCategoryId,
+        fromElementId,
+        fromElementOrder,
+        toElementOrder,
+        type,
+      });
       let swappedCategories;
       let filteredCategories;
       let movingElement = null;
 
       switch (type) {
         case 'category':
-          filteredCategories = state.categories.filter(category => category.id !== 'category#phantom');
+          filteredCategories = state.categories.filter(
+            (category) => category.id !== 'category#phantom'
+          );
           swappedCategories = moveElement({
             elements: filteredCategories,
             elementId: fromElementId,
             oldElementOrder: fromElementOrder,
-            newElementOrder: toElementOrder
+            newElementOrder: toElementOrder,
           });
           // console.log('moveElement: ', swappedCategories);
           state.categories = reorder(swappedCategories);
@@ -259,24 +287,36 @@ export default {
            * 1) Перемещение внутри категории
            * 2) Перемещение между катерогий
            * 3) Перемещение между категорией и парковкой
-          */
+           */
           if (fromCategoryId === 'parking') {
             // const filteredElements = state.freeElements.filter(element => element.id !== 'element#phantom');
             state.freeElements = state.freeElements.filter((element) => {
               if (element.id === fromElementId) {
                 movingElement = element;
                 return false;
-              };
+              }
               return element.id !== 'element#phantom';
             });
-            state.freeElements = reorder(state.freeElements);
+            // state.freeElements = reorder(state.freeElements);
 
             if (toCategoryId === 'parking') {
-              state.freeElements = addMovinglement({ elements: state.freeElements, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+              state.freeElements = addMovingElement({
+                elements: state.freeElements,
+                movingElement,
+                fromElementId,
+                oldElementOrder: fromElementOrder,
+                newElementOrder: toElementOrder,
+              });
             } else {
               state.categories = state.categories.map((category) => {
                 if (category.id === toCategoryId) {
-                  category.elems = addMovinglement({ elements: category.elems, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                  category.elems = addMovingElement({
+                    elements: category.elems,
+                    movingElement,
+                    fromElementId,
+                    oldElementOrder: fromElementOrder,
+                    newElementOrder: toElementOrder,
+                  });
                 }
                 return category;
               });
@@ -287,12 +327,14 @@ export default {
               // действуем по упрощенной схеме - без копирования эл-та
               state.categories = state.categories.map((category) => {
                 if (category.id === fromCategoryId) {
-                  category.elems = category.elems.filter((element) => element.id !== 'element#phantom');
+                  category.elems = category.elems.filter(
+                    (element) => element.id !== 'element#phantom'
+                  );
                   const swappedElements = moveElement({
                     elements: category.elems,
                     elementId: fromElementId,
                     oldElementOrder: fromElementOrder,
-                    newElementOrder: toElementOrder
+                    newElementOrder: toElementOrder,
                   });
                   category.elems = reorder(swappedElements);
                 }
@@ -307,7 +349,7 @@ export default {
                     if (element.id === fromElementId) {
                       movingElement = element;
                       return false;
-                    };
+                    }
                     return element.id !== 'element#phantom';
                   });
                   category.elems = reorder(category.elems);
@@ -317,7 +359,13 @@ export default {
 
               // 2) Проверка - куда переносим эл-т: в другую категорию или в парковку?
               if (toCategoryId === 'parking') {
-                state.freeElements = addMovinglement({ elements: state.freeElements, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                state.freeElements = addMovingElement({
+                  elements: state.freeElements,
+                  movingElement,
+                  fromElementId,
+                  oldElementOrder: fromElementOrder,
+                  newElementOrder: toElementOrder,
+                });
                 // state.freeElements = [...state.freeElements, movingElement];
                 // const swappedElements = moveElement({
                 //   elements: state.freeElements,
@@ -329,7 +377,13 @@ export default {
               } else {
                 state.categories = state.categories.map((category) => {
                   if (category.id === toCategoryId) {
-                    category.elems = addMovinglement({ elements: category.elems, movingElement, fromElementId, oldElementOrder: fromElementOrder, newElementOrder: toElementOrder });
+                    category.elems = addMovingElement({
+                      elements: category.elems,
+                      movingElement,
+                      fromElementId,
+                      oldElementOrder: fromElementOrder,
+                      newElementOrder: toElementOrder,
+                    });
                     // category.elems = [...category.elems, movingElement];
                     // const swappedElements = moveElement({
                     //   elements: category.elems,
@@ -351,23 +405,32 @@ export default {
       state.isPhantomCreated = false;
     },
     swapCategories(state, { sourceOrder, destinationOrder, categoryId }) {
-      console.log('swapCategories: ', { sourceOrder, destinationOrder, categoryId });
-
-      state.categories = state.categories.filter((category) => category.id !== 'target#position');
-      state.categories = addPhantom(
-        'category',
-        state.categories,
+      console.log('swapCategories: ', {
+        sourceOrder,
+        destinationOrder,
         categoryId,
-        {
-          sourceOrder,
-          destinationOrder,
-          title: '',
-          swap: true
-        }
+      });
+
+      state.categories = state.categories.filter(
+        (category) => category.id !== 'target#position'
       );
+      state.categories = addPhantom('category', state.categories, categoryId, {
+        sourceOrder,
+        destinationOrder,
+        title: '',
+        swap: true,
+      });
     },
-    swapElements(state, { sourceOrder, destinationOrder, fromCategoryId, toCategoryId }) {
-      console.log('swapElements: ', { sourceOrder, destinationOrder, fromCategoryId, toCategoryId });
+    swapElements(
+      state,
+      { sourceOrder, destinationOrder, fromCategoryId, toCategoryId }
+    ) {
+      console.log('swapElements: ', {
+        sourceOrder,
+        destinationOrder,
+        fromCategoryId,
+        toCategoryId,
+      });
 
       if (fromCategoryId === toCategoryId) {
         if (toCategoryId === 'parking') {
@@ -379,21 +442,36 @@ export default {
             return element;
           });
 
-          state.freeElements = addPhantom(
-            'element',
-            state.freeElements,
-            null,
-            {
-              sourceOrder,
-              destinationOrder,
-              title: '',
-              swap: true
-            }
-          );
+          state.freeElements = addPhantom('element', state.freeElements, null, {
+            sourceOrder,
+            destinationOrder,
+            title: '',
+            swap: true,
+          });
         } else {
           // внутри категории
+          state.categories = fromCategoryOffPosition(state.categories, fromCategoryId);
+
+          state.categories = addPhantomToCategory(state.categories, toCategoryId, sourceOrder, destinationOrder);
+
+          // state.categories = state.categories.map((category) => {
+          //   if (category.id === toCategoryId) {
+          //     category.elems = addPhantom('element', category.elems, null, {
+          //       sourceOrder,
+          //       destinationOrder,
+          //       title: '',
+          //       swap: true,
+          //     });
+          //   }
+          //   return category;
+          // });
+        }
+      } else {
+        // между категориями
+        if (fromCategoryId === 'parking') {
+          // из парковки в категорию
           state.categories = state.categories.map((category) => {
-            if (category.id === fromCategoryId) {
+            if (category.elems !== undefined) {
               category.elems = category.elems.map((element) => {
                 element.targetPosition = false;
                 return element;
@@ -402,31 +480,52 @@ export default {
             return category;
           });
 
+          state.categories = addPhantomToCategory(state.categories, toCategoryId, sourceOrder, destinationOrder);
+          // state.categories.map((category) => {
+          //   if (category.id === toCategoryId) {
+          //     category.elems = addPhantom('element', category.elems, null, {
+          //       sourceOrder,
+          //       destinationOrder,
+          //       title: '',
+          //       swap: true,
+          //     });
+          //   }
+          //   return category;
+          // });
+        } else if (toCategoryId === 'parking') {
+          // из категории в парковку
+          state.categories = fromCategoryOffPosition(state.categories, fromCategoryId);
+
+          state.freeElements = state.freeElements.map((element) => {
+            if (element.order === destinationOrder) {
+              element.targetPosition = true;
+            }
+            return element;
+          });
+
+          state.freeElements = addPhantom('element', state.freeElements, null, {
+            sourceOrder,
+            destinationOrder,
+            title: '',
+            swap: true,
+          });
+        } else {
+          // из категории в категорию
+          state.categories = fromCategoryOffPosition(state.categories, fromCategoryId);
+
           state.categories = state.categories.map((category) => {
             if (category.id === toCategoryId) {
-              category.elems = addPhantom(
-                'element',
-                category.elems,
-                null,
-                {
-                  sourceOrder,
-                  destinationOrder,
-                  title: '',
-                  swap: true
+              category.elems = category.elems.map((element) => {
+                if (element.order === destinationOrder) {
+                  element.targetPosition = true;
+                } else {
+                  element.targetPosition = false;
                 }
-              );
+                return element;
+              });
             }
             return category;
           });
-        }
-      } else {
-        // между категориями
-        if (fromCategoryId === 'parking') {
-          // из парковки в категорию
-
-        } else {
-          // из категории в парковку
-
         }
       }
 
